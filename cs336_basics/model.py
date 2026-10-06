@@ -132,3 +132,55 @@ def scaled_dot_product_attention(Q: torch.Tensor, K: torch.Tensor, V: torch.Tens
         scores = scores.masked_fill(~mask, float("-inf"))
     weights = softmax(scores)
     return weights @ V
+
+class multihead_self_attention(nn.Module):
+    def __init__(self,  d_model: int, num_heads: int, theta:int | None = None, max_seq_len: int | None = None,):
+        # d_k = d_v = d_model / h
+        super().__init__()
+        self.h = num_heads
+        self.d_t = d_model // num_heads
+        self.Wq = nn.Parameter(torch.empty(d_model, d_model))
+        self.Wk = nn.Parameter(torch.empty(d_model, d_model))
+        self.Wv = nn.Parameter(torch.empty(d_model, d_model))
+        self.Wo = nn.Parameter(torch.empty(d_model, d_model))
+        std = 1 / math.sqrt(d_model)
+        nn.init.trunc_normal_(self.Wq,mean=0.0,std=std,a=-3 * std,b=3 * std,)
+        nn.init.trunc_normal_(self.Wk,mean=0.0,std=std,a=-3 * std,b=3 * std,)
+        nn.init.trunc_normal_(self.Wv,mean=0.0,std=std,a=-3 * std,b=3 * std,)
+        nn.init.trunc_normal_(self.Wo,mean=0.0,std=std,a=-3 * std,b=3 * std,)
+        self.rpe = RotaryPositionalEmbedding(theta, self.d_t, max_seq_len) if theta is not None and max_seq_len is not None else None
+
+
+    def forward(self, in_features, token_positions=None):
+        ## Q, K, V [batch, seq_len, h * d_k]
+        ## 按头拆分
+        batch, seq_len, d_m = in_features.shape[0], in_features.shape[1], in_features.shape[2]
+        Q = in_features @ self.Wq.T
+        K = in_features @ self.Wk.T
+        V = in_features @ self.Wv.T
+
+        ## Q, K, V - > [batch, h, seq_len, d_k(d_v)]
+        Q = Q.reshape(batch, seq_len, self.h, self.d_t).transpose(1, 2)
+        K = K.reshape(batch, seq_len, self.h, self.d_t).transpose(1, 2)
+        V = V.reshape(batch, seq_len, self.h, self.d_t).transpose(1, 2) 
+
+        ## 加位置编码
+        if self.rpe is not None:
+            if token_positions is None:
+                token_positions = torch.arange(seq_len, device=in_features.device)
+            if token_positions.ndim > 1:
+                token_positions = token_positions.unsqueeze(-2)
+            Q = self.rpe(Q, token_positions)
+            K = self.rpe(K, token_positions)
+
+        ## 缩放点积注意力 Causual masking  
+        # Query i 只能 attend 满足 j <= i 的 Key j，
+        # 因而最终只能读取当前位置及之前位置对应的 Value
+        positions = torch.arange(seq_len, device=in_features.device)
+        mask = positions[None, :] <= positions[:, None]
+        res = scaled_dot_product_attention(Q, K, V, mask)
+
+        res = res.transpose(1, 2).reshape(batch, seq_len, d_m)
+        
+        return res @ self.Wo.T
+    
