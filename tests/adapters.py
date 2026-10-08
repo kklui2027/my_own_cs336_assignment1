@@ -15,7 +15,7 @@ from cs336_basics.model import (
     Linear,
     RMSNorm,
     RotaryPositionalEmbedding,
-    SwiGLU,
+    positionwise_feedforward,
     scaled_dot_product_attention,
     softmax,
     multihead_self_attention,
@@ -90,7 +90,7 @@ def run_swiglu(
     Returns:
         Float[Tensor, "... d_model"]: Output embeddings of the same shape as the input embeddings.
     """
-    swiglu = SwiGLU(d_model, d_ff).to(device=w1_weight.device, dtype=w1_weight.dtype)
+    swiglu = positionwise_feedforward(d_model, d_ff).to(device=w1_weight.device, dtype=w1_weight.dtype)
     swiglu.load_state_dict({"W1": w1_weight, "W2": w2_weight, "W3": w3_weight})
     return swiglu(in_features)
 
@@ -229,7 +229,7 @@ def run_rope(
     )
     return rope(in_query_or_key, token_positions)
 
-
+from cs336_basics.transformer import TransformerBlock, Transformer
 def run_transformer_block(
     d_model: int,
     num_heads: int,
@@ -300,7 +300,22 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+    block = TransformerBlock(
+        d_model, num_heads, d_ff, max_seq_len, theta,
+        device=in_features.device, dtype=in_features.dtype,
+    )
+    block.load_state_dict({
+        "mha.Wq": weights["attn.q_proj.weight"],
+        "mha.Wk": weights["attn.k_proj.weight"],
+        "mha.Wv": weights["attn.v_proj.weight"],
+        "mha.Wo": weights["attn.output_proj.weight"],
+        "ln1.g": weights["ln1.weight"],
+        "ffn.W1": weights["ffn.w1.weight"],
+        "ffn.W2": weights["ffn.w2.weight"],
+        "ffn.W3": weights["ffn.w3.weight"],
+        "ln2.g": weights["ln2.weight"],
+    })
+    return block(in_features)
 
 
 def run_transformer_lm(
@@ -382,7 +397,29 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
-    raise NotImplementedError
+    model = Transformer(
+        vocab_size, context_length, d_model, num_layers, num_heads, d_ff, rope_theta,
+        device=in_indices.device, dtype=weights["token_embeddings.weight"].dtype,
+    )
+    adapted_weights = {
+        "emb.vocab": weights["token_embeddings.weight"],
+        "norm.g": weights["ln_final.weight"],
+        "ln.weight": weights["lm_head.weight"],
+    }
+    for i in range(num_layers):
+        adapted_weights.update({
+            f"layers.{i}.mha.Wq": weights[f"layers.{i}.attn.q_proj.weight"],
+            f"layers.{i}.mha.Wk": weights[f"layers.{i}.attn.k_proj.weight"],
+            f"layers.{i}.mha.Wv": weights[f"layers.{i}.attn.v_proj.weight"],
+            f"layers.{i}.mha.Wo": weights[f"layers.{i}.attn.output_proj.weight"],
+            f"layers.{i}.ln1.g": weights[f"layers.{i}.ln1.weight"],
+            f"layers.{i}.ffn.W1": weights[f"layers.{i}.ffn.w1.weight"],
+            f"layers.{i}.ffn.W2": weights[f"layers.{i}.ffn.w2.weight"],
+            f"layers.{i}.ffn.W3": weights[f"layers.{i}.ffn.w3.weight"],
+            f"layers.{i}.ln2.g": weights[f"layers.{i}.ln2.weight"],
+        })
+    model.load_state_dict(adapted_weights)
+    return model(in_indices)
 
 
 def run_rmsnorm(

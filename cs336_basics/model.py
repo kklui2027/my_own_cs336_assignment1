@@ -58,7 +58,7 @@ class RMSNorm(nn.Module):
 
         return (normalized * self.g).to(input_dtype)
 
-class SwiGLU(nn.Module):
+class positionwise_feedforward(nn.Module):
     def __init__(self, d_model: int, dff: int):
         super().__init__()
         self.W1 = nn.Parameter(torch.empty(dff, d_model))
@@ -131,7 +131,7 @@ def scaled_dot_product_attention(Q: torch.Tensor, K: torch.Tensor, V: torch.Tens
     if mask is not None:
         scores = scores.masked_fill(~mask, float("-inf"))
     weights = softmax(scores)
-    return weights @ V
+    return weights @ V  
 
 class multihead_self_attention(nn.Module):
     def __init__(self,  d_model: int, num_heads: int, theta:int | None = None, max_seq_len: int | None = None,):
