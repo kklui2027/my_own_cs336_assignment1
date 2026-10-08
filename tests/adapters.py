@@ -19,6 +19,7 @@ from cs336_basics.model import (
     scaled_dot_product_attention,
     softmax,
     multihead_self_attention,
+    cross_entropy,
 )
 from cs336_basics.tokenization import run_train_bpe1
 
@@ -509,13 +510,13 @@ def run_cross_entropy(
     Args:
         inputs (Float[Tensor, "batch_size vocab_size"]): inputs[i][j] is the
             unnormalized logit of jth class for the ith example.
-        targets (Int[Tensor, "batch_size"]): Tensor of shape (batch_size,) with the index of the correct class.
+        targets (Int[Tensor, "batch_size"]): Tensor of shape (batch_size,) with the index of the correct class
             Each value must be between 0 and `num_classes - 1`.
 
     Returns:
         Float[Tensor, ""]: The average cross-entropy loss across examples.
     """
-    raise NotImplementedError
+    return cross_entropy(inputs, targets)
 
 
 def run_gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: float) -> None:
