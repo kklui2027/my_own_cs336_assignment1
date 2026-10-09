@@ -3,7 +3,6 @@ import math
 import torch
 from torch import nn
 
-
 class Linear(nn.Module):
     def __init__(self, in_features, out_features, device=None, dtype=None):
         super().__init__()
@@ -184,20 +183,7 @@ class multihead_self_attention(nn.Module):
         
         return res @ self.Wo.T
 
-def cross_entropy(logits : torch.Tensor, targets: torch.Tensor):
-    ## 全部flatten，方便计算
-    logits = logits.reshape(-1, logits.shape[-1])
-    targets = targets.reshape(-1)
 
-    maxm = logits.max(dim=-1, keepdim=True).values
-    logits = logits - maxm
-
-    rows = torch.arange(logits.shape[0], device=logits.device)
-    target_logits = logits[rows, targets]
-
-    log_normalizer = torch.log(torch.exp(logits).sum(dim=1))
-    logits = torch.log(torch.exp(logits).sum(dim = 1))
-    return (log_normalizer - target_logits).mean()
 
     
 
