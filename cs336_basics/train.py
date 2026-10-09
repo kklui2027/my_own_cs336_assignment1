@@ -116,17 +116,50 @@ class AdamW(torch.optim.Optimizer):
         return loss
 
 
+def learning_rate_schedule(    
+    it: int,
+    max_learning_rate: float,
+    min_learning_rate: float,
+    warmup_iters: int,
+    cosine_cycle_iters: int,
+    ):
+    if it < warmup_iters:
+        lr = it / warmup_iters * max_learning_rate
+        return lr
+    if warmup_iters <= it <= cosine_cycle_iters:
+        lr = min_learning_rate + (1 + math.cos((it - warmup_iters) / (cosine_cycle_iters - warmup_iters) * math.pi))/ 2 * (max_learning_rate - min_learning_rate)
+        return lr
+    if it > cosine_cycle_iters:
+        return min_learning_rate
+    
+def gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: float) -> None:
+    grads = [parameter.grad for parameter in parameters if parameter.grad is not None]
 
+    total_norm = math.sqrt( sum(grad.square().sum() for grad in grads) )
 
+    if total_norm > max_l2_norm:
+        epsilon = 1e-6
+        scale = max_l2_norm / (total_norm + epsilon)
+        for grad in grads:
+            grad.mul_(scale)
 
+import numpy.typing as npt
+import numpy as np
+def data_loading(dataset: npt.NDArray, batch_size: int, context_length: int, device: str):
+    ## 随机生成 0 ~ n - m 之间的索引
+    ranidx = np.random.randint(0, len(dataset) - context_length, batch_size)
 
+    ## 利用广播和高级索引直接得到对应形状的下标数组
+    offset = np.arange(context_length)
+    ranidx = ranidx[:,None] + offset
 
+    inputs = dataset[ranidx]
+    labels = dataset[ranidx + 1]
 
-
-
-
-
-
+    return (
+        torch.as_tensor(inputs, dtype=torch.long, device=device),
+        torch.as_tensor(labels, dtype=torch.long, device=device)
+    )
     
 # weights = torch.nn.Parameter(5 * torch.randn((10, 10)))
 # opt = SGD([weights], lr=1e3)

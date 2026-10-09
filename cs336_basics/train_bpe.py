@@ -1,5 +1,5 @@
 from pathlib import Path
-from .tokenization import run_train_bpe1
+from .bpe_tokenization import run_train_bpe1
 
 # log code
 from datetime import datetime

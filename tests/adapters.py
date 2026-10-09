@@ -10,6 +10,7 @@ from jaxtyping import Bool, Float, Int
 from torch import Tensor
 
 from cs336_basics.bpe_tokenizer import tokenizer
+from cs336_basics.bpe_tokenization import run_train_bpe1
 from cs336_basics.model import (
     Embedding,
     Linear,
@@ -19,10 +20,9 @@ from cs336_basics.model import (
     scaled_dot_product_attention,
     softmax,
     multihead_self_attention,
-    cross_entropy,
 )
-from cs336_basics.tokenization import run_train_bpe1
-
+from cs336_basics.transformer import TransformerBlock, Transformer
+from cs336_basics.train import learning_rate_schedule, gradient_clipping, data_loading
 
 def run_linear(
     d_in: int,
@@ -230,7 +230,7 @@ def run_rope(
     )
     return rope(in_query_or_key, token_positions)
 
-from cs336_basics.transformer import TransformerBlock, Transformer
+
 def run_transformer_block(
     d_model: int,
     num_heads: int,
@@ -482,7 +482,7 @@ def run_get_batch(
         is the sampled input sequences, and the second tuple item is the corresponding
         language modeling labels.
     """
-    raise NotImplementedError
+    return data_loading(dataset, batch_size, context_length, device)
 
 
 def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
@@ -528,7 +528,7 @@ def run_gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm:
 
     The gradients of the parameters (parameter.grad) should be modified in-place.
     """
-    raise NotImplementedError
+    return gradient_clipping(parameters, max_l2_norm)
 
 
 def get_adamw_cls() -> Any:
@@ -536,7 +536,6 @@ def get_adamw_cls() -> Any:
     Returns a torch.optim.Optimizer that implements AdamW.
     """
     raise NotImplementedError
-
 
 def run_get_lr_cosine_schedule(
     it: int,
@@ -563,7 +562,7 @@ def run_get_lr_cosine_schedule(
     Returns:
         Learning rate at the given iteration under the specified schedule.
     """
-    raise NotImplementedError
+    return learning_rate_schedule(it, max_learning_rate,  min_learning_rate, warmup_iters, cosine_cycle_iters)  
 
 
 def run_save_checkpoint(
