@@ -1,6 +1,8 @@
 from cs336_basics.train_bpe import read_txt_to_bpe
 from cs336_basics.transformer import Transformer
 from cs336_basics.train import AdamW, cross_entropy, learning_rate_schedule,  gradient_clipping, data_loading, save_checkpoint
+from pathlib import Path
+import numpy as np
 import argparse
 import torch
 
@@ -117,8 +119,9 @@ def main():
     resume_path = args.resume_path
 
     ##  从训练好的merge / vocab 中加载数据
-        # data_loading 随机读取训练数据
-
+    # data_loading 随机读取训练数据
+    train_data = np.memmap()
+    valid_data = np.memmap()
     ## 初始化环境
     # 核心网络
     net = Transformer(vocab_size, context_length, d_model, num_layers, num_heads, d_ff, rope_theta, device=device, dtype=dtype,)
@@ -159,12 +162,17 @@ def main():
                     train_loss = loss_fn(train_logits, train_labels)
                     train_loss_sum += train_loss
                     valid_loss_sum += valid_loss
-                print(f"Step.{step} train_loss={train_loss_sum / eval_batches} valid={valid_loss_sum / eval_batches} lr={lr}")
+                print(f"Step.{step + 1} train_loss={train_loss_sum / eval_batches :.4f} valid={valid_loss_sum / eval_batches:.4f} lr={lr:.6g}")
                     
 
         if (step % save_interval == 0):
-            save_checkpoint(net, optimizer, step, checkpoint_dir)
-            print("Step.{step} already check point in {checkpoint_dir}")
+            checkpoint_path = Path(checkpoint_dir)
+            checkpoint_path.mkdir(parents=True, exist_ok=True)
+
+            save_path = checkpoint_path / f"step_{step + 1}.pt"
+
+            save_checkpoint(net, optimizer, step, save_path)
+            print(f"Step.{step + 1} already check point in {save_path}")
 
 
 
