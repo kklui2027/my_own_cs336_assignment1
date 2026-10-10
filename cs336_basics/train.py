@@ -95,7 +95,8 @@ class AdamW(torch.optim.Optimizer):
                 v = state["exp_avg_sq"]
 
                 # 更新迭代次数，t 从 1 开始
-                t = ++ state["step"]
+                state["step"] += 1
+                t = state["step"]
 
                 # 计算偏差修正后的学习率
                 alpha_t = ( lr * math.sqrt(1 - beta2 ** t ) / (1 - beta1 ** t))
@@ -141,8 +142,8 @@ def gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: flo
         epsilon = 1e-6
         scale = max_l2_norm / (total_norm + epsilon)
         for grad in grads:
-            grad.mul_(scale)
 
+            grad.mul_(scale)
 import numpy.typing as npt
 import numpy as np
 def data_loading(dataset: npt.NDArray, batch_size: int, context_length: int, device: str):
@@ -161,6 +162,22 @@ def data_loading(dataset: npt.NDArray, batch_size: int, context_length: int, dev
         torch.as_tensor(labels, dtype=torch.long, device=device)
     )
 
+def save_checkpoint(model, optimizer, iteration, out):
+    check_point = {
+        "model": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "iteration": iteration
+    }
+
+    torch.save(check_point, out)
+
+def load_checkpoint(src, model, optimizer):
+    check_point = torch.load(src)
+
+    model.load_state_dict(check_point["model"])
+    optimizer.load_state_dict(check_point["optimizer"])
+
+    return check_point["iteration"]
 
 # weights = torch.nn.Parameter(5 * torch.randn((10, 10)))
 # opt = SGD([weights], lr=1e3)
