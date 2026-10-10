@@ -27,6 +27,24 @@ def save_bpe_to_txt(
         for token1, token2 in merges:
             f.write(f"{token1.hex()}\t{token2.hex()}\n")
 
+def read_text_to_bpe(
+    input_dir: str
+) ->tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
+    vocab: dict[int, bytes] = {}
+    merges: list[tuple[bytes, bytes]] = []
+
+    input_dir = Path(input_dir)
+    #
+    with open(input_dir / "vocab.txt", "r", encoding="utf-8") as f:
+        for line in f:
+            ## 去掉换行符,按照\t切分
+            token_id, byte = line.strip('\n').split('t')
+            vocab[token_id] = bytes.fromhex(byte)
+    # 保存 merges
+    with open(input_dir / "merges.txt", "r", encoding="utf-8") as f:
+        for line in f:
+            byte1 ,byte2 = line.strip('\n').split('t')
+            merges.append(bytes.fromhex(byte1), bytes.fromhex(byte2))
 
 if __name__ == "__main__":
     # log code

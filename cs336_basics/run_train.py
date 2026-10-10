@@ -1,11 +1,16 @@
 from cs336_basics.train_bpe import read_txt_to_bpe
 from cs336_basics.transformer import Transformer
 from cs336_basics.train import AdamW, cross_entropy, learning_rate_schedule,  gradient_clipping, data_loading, save_checkpoint
+from cs336_basics.logging import plot_loss_curves
 from pathlib import Path
 import numpy as np
 import argparse
+import uuid
 import torch
-
+import csv
+import json
+import logging
+import time
 
 ## 读取命令行参数
 def parse_args():
@@ -67,6 +72,8 @@ def parse_args():
     checkpoint_args.add_argument("--checkpoint_dir", type=str, default="checkpoints")
     checkpoint_args.add_argument("--resume_path", type=str, default=None)
 
+    #实验日志
+    parser.add_argument("--run_name", type=str, default="baseline")
     return parser.parse_args()
 
 def main():
@@ -134,6 +141,45 @@ def main():
     # 梯度剪裁
     gradient_regularization = gradient_clipping
 
+    ## log code:
+    run_dir = Path("runs") / f"{args.run_name}_{uuid.uuid4().hex[:8]}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    # 保存实验参数，以及实际采用的学习率调度参数。
+    config = vars(args).copy()
+    config.update(
+        max_learning_rate=max_learning_rate,
+        min_learning_rate=min_learning_rate,
+        cosine_cycle_iters=cosine_cycle_iters,
+    )
+    with open(run_dir / "config.json", "w", encoding="utf-8") as file:
+        json.dump(config, file, ensure_ascii=False, indent=2)
+
+    # 建立指标文件，先写列名。
+    metrics_path = run_dir / "metrics.csv"
+    with open(metrics_path, "w", encoding="utf-8", newline="") as file:
+        csv.writer(file).writerow([
+            "step", "elapsed_seconds", "train_loss", "val_loss", "learning_rate"
+        ])
+
+    # 状态信息同时写入文件和显示在终端。
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[
+            logging.FileHandler(run_dir / "run.log", encoding="utf-8"),
+            logging.StreamHandler(),
+        ],
+    )
+    logging.info("Experiment directory: %s", run_dir)
+
+    # 排除模型初始化阶段尚未完成的 CUDA 操作。
+    if torch.device(device).type == "cuda":
+        torch.cuda.synchronize(device)
+
+    ## ^^ log code
+
+    start_time = time.perf_counter()
     ## 训练循环
     for step in range(max_steps):
         ## 调整学习率：
@@ -162,8 +208,27 @@ def main():
                     train_loss = loss_fn(train_logits, train_labels)
                     train_loss_sum += train_loss
                     valid_loss_sum += valid_loss
-                print(f"Step.{step + 1} train_loss={train_loss_sum / eval_batches :.4f} valid={valid_loss_sum / eval_batches:.4f} lr={lr:.6g}")
-                    
+
+                # 转成普通 Python 数值，写入文件。
+                train_loss_value = (train_loss_sum / eval_batches).item()
+                val_loss_value = (valid_loss_sum / eval_batches).item()
+                elapsed_seconds = time.perf_counter() - start_time
+                completed_steps = step + 1
+
+                # "a" 表示append，不覆盖之前的记录。
+                with open(metrics_path, "a", encoding="utf-8", newline="") as file:
+                    csv.writer(file).writerow([
+                        completed_steps,
+                        elapsed_seconds,
+                        train_loss_value,
+                        val_loss_value,
+                        lr,
+                    ])
+
+                logging.info(
+                    "step=%d elapsed=%.1fs train_loss=%.4f val_loss=%.4f lr=%.6g",
+                    completed_steps, elapsed_seconds, train_loss_value, val_loss_value, lr,
+                )
 
         if (step % save_interval == 0):
             checkpoint_path = Path(checkpoint_dir)
@@ -173,6 +238,8 @@ def main():
 
             save_checkpoint(net, optimizer, step, save_path)
             print(f"Step.{step + 1} already check point in {save_path}")
+
+    plot_loss_curves(run_dir) 
 
 
 
