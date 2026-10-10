@@ -160,7 +160,8 @@ def data_loading(dataset: npt.NDArray, batch_size: int, context_length: int, dev
         torch.as_tensor(inputs, dtype=torch.long, device=device),
         torch.as_tensor(labels, dtype=torch.long, device=device)
     )
-    
+
+
 # weights = torch.nn.Parameter(5 * torch.randn((10, 10)))
 # opt = SGD([weights], lr=1e3)
 
