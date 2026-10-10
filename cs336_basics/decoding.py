@@ -96,9 +96,11 @@ def main():
                 sum += p_t
                 re_len += 1
 
-            # 重索引
+            # 重索引-计算概率
             re_prob, re_idx = prob[0:re_len], index[0:re_len]
+            re_prob = re_prob / re_prob.sum()
 
+            # 0 - 1 random_pro -> 随机采样
             random_t = random.random()
             sum, idx = 0, 0
             for i, b in enumerate(re_prob):
