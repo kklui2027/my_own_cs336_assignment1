@@ -141,11 +141,11 @@ def main():
     # 梯度剪裁
     gradient_regularization = gradient_clipping
 
-    ## log code:
+    ## log 存放地址:
     run_dir = Path("runs") / f"{args.run_name}_{uuid.uuid4().hex[:8]}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    # 保存实验参数，以及实际采用的学习率调度参数。
+    # 保存当前入参，以及实际采用的学习率调度参数。
     config = vars(args).copy()
     config.update(
         max_learning_rate=max_learning_rate,
@@ -155,7 +155,7 @@ def main():
     with open(run_dir / "config.json", "w", encoding="utf-8") as file:
         json.dump(config, file, ensure_ascii=False, indent=2)
 
-    # 建立指标文件，先写列名。
+    # 建立指标文件 按 "step", "elapsed_seconds", "train_loss", "val_loss", "learning_rate" csv
     metrics_path = run_dir / "metrics.csv"
     with open(metrics_path, "w", encoding="utf-8", newline="") as file:
         csv.writer(file).writerow([
@@ -171,13 +171,12 @@ def main():
             logging.StreamHandler(),
         ],
     )
-    logging.info("Experiment directory: %s", run_dir)
+    logging.info("Current Experiment directory: %s", run_dir)
 
     # 排除模型初始化阶段尚未完成的 CUDA 操作。
     if torch.device(device).type == "cuda":
         torch.cuda.synchronize(device)
 
-    ## ^^ log code
 
     start_time = time.perf_counter()
     ## 训练循环
@@ -215,7 +214,7 @@ def main():
                 elapsed_seconds = time.perf_counter() - start_time
                 completed_steps = step + 1
 
-                # "a" 表示append，不覆盖之前的记录。
+                # append 近参数文件
                 with open(metrics_path, "a", encoding="utf-8", newline="") as file:
                     csv.writer(file).writerow([
                         completed_steps,
@@ -224,10 +223,12 @@ def main():
                         val_loss_value,
                         lr,
                     ])
-
                 logging.info(
-                    "step=%d elapsed=%.1fs train_loss=%.4f val_loss=%.4f lr=%.6g",
-                    completed_steps, elapsed_seconds, train_loss_value, val_loss_value, lr,
+                    f"step={completed_steps} "
+                    f"elapsed={elapsed_seconds:.1f}s "
+                    f"train_loss={train_loss_value:.4f} "
+                    f"val_loss={val_loss_value:.4f} "
+                    f"lr={lr:.6g}"
                 )
 
         if (step % save_interval == 0):
@@ -240,7 +241,6 @@ def main():
             print(f"Step.{step + 1} already check point in {save_path}")
 
     plot_loss_curves(run_dir) 
-
 
 
 if __name__ == "__main__":
