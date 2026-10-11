@@ -8,7 +8,7 @@ class TransformerBlock(nn.Module):
         self.num_heads = num_heads
         self.d_ff = d_ff
 
-        self.mha = multihead_self_attention(d_model, num_heads, theta,max_seq_len).to(device=device, dtype=dtype)
+        self.mha = multihead_self_attention(d_model, num_heads, theta, max_seq_len).to(device=device, dtype=dtype)
         self.ffn = positionwise_feedforward(d_model, d_ff).to(device=device, dtype=dtype)
         self.ln1 = RMSNorm(d_model, device=device, dtype=dtype)
         self.ln2 = RMSNorm(d_model, device=device, dtype=dtype)
