@@ -1,4 +1,3 @@
-from cs336_basics.train_bpe import read_txt_to_bpe
 from cs336_basics.transformer import Transformer
 from cs336_basics.train import AdamW, cross_entropy, learning_rate_schedule,  gradient_clipping, data_loading, save_checkpoint
 from cs336_basics.logging import plot_loss_curves
@@ -11,6 +10,17 @@ import csv
 import json
 import logging
 import time
+
+# ai新增
+def tensor_group_l2_norm(tensors):
+    squared_sum = None
+    for tensor in tensors:
+        if tensor is None:
+            continue
+        value = tensor.detach().float().square().sum()
+        squared_sum = value if squared_sum is None else squared_sum + value
+    return squared_sum.sqrt().item() if squared_sum is not None else 0.0
+
 
 ## 读取命令行参数
 def parse_args():
@@ -53,7 +63,7 @@ def parse_args():
     ## 训练与运行设备
     training_args = parser.add_argument_group("训练与运行设备")
     training_args.add_argument("--batch_size", type=int, default=32)
-    training_args.add_argument("--max_steps", type=int, default=10000)
+    training_args.add_argument("--max_steps", type=int, default=20000)
     training_args.add_argument("--device", type=str, default="cuda")
     training_args.add_argument("--dtype", choices=["float32", "float16", "bfloat16"], default="float32")
 
@@ -127,11 +137,28 @@ def main():
 
     ##  从训练好的merge / vocab 中加载数据
     # data_loading 随机读取训练数据
-    train_data = np.memmap()
-    valid_data = np.memmap()
+    train_data = np.memmap(train_path, dtype=np.uint32, mode="r")
+    valid_data = np.memmap(val_path, dtype=np.uint32, mode="r")
     ## 初始化环境
     # 核心网络
     net = Transformer(vocab_size, context_length, d_model, num_layers, num_heads, d_ff, rope_theta, device=device, dtype=dtype,)
+    # ai新增
+    should_log_norms = False
+    activation_rms = {}
+
+    def make_activation_hook(layer_index):
+        def capture_activation(_module, _inputs, output):
+            if should_log_norms:
+                output = output.detach().float()
+                activation_rms[layer_index] = output.square().mean().sqrt().item()
+
+        return capture_activation
+
+    activation_hooks = [
+        layer.register_forward_hook(make_activation_hook(layer_index))
+        for layer_index, layer in enumerate(net.layers)
+    ]
+
     # 损失函数
     loss_fn = cross_entropy
     # optimizer 优化器
@@ -157,6 +184,17 @@ def main():
 
     # 建立指标文件 按 "step", "elapsed_seconds", "train_loss", "val_loss", "learning_rate" csv
     metrics_path = run_dir / "metrics.csv"
+
+    # ai新增
+    norms_path = run_dir / "norms.csv"
+    norm_columns = [
+        "step", "elapsed_seconds", "weight_l2", "grad_l2_pre_clip",
+        *(f"layer_{i}_weight_l2" for i in range(num_layers)),
+        *(f"layer_{i}_grad_l2_pre_clip" for i in range(num_layers)),
+        *(f"layer_{i}_activation_rms" for i in range(num_layers)),
+    ]
+    with open(norms_path, "w", encoding="utf-8", newline="") as file:
+        csv.writer(file).writerow(norm_columns)
     with open(metrics_path, "w", encoding="utf-8", newline="") as file:
         csv.writer(file).writerow([
             "step", "elapsed_seconds", "train_loss", "val_loss", "learning_rate"
@@ -188,19 +226,50 @@ def main():
         ## 训练 -> 反向传播 -> 梯度剪裁 -> 优化
         net.train()
         net.zero_grad()
-        inputs, labels = data_loading(train_path, batch_size, context_length, device)
+        # ai新增
+        should_log_norms = step % eval_interval == 0
+        activation_rms.clear()
+
+        inputs, labels = data_loading(train_data, batch_size, context_length, device)
         logits = net(inputs)
+        should_log_norms = False
         loss = loss_fn(logits, labels)
         loss.backward()
+
+        # 裁剪前记录梯度范数，便于发现持续过大的梯度。
+        # ai新增
+        if step % eval_interval == 0:
+            grad_l2_pre_clip = tensor_group_l2_norm(
+                parameter.grad for parameter in net.parameters()
+                if parameter.grad is not None
+            )
+            layer_grad_l2 = [
+                tensor_group_l2_norm(
+                    parameter.grad for parameter in layer.parameters()
+                    if parameter.grad is not None
+                )
+                for layer in net.layers
+            ]
+        else:
+            grad_l2_pre_clip = None
+            layer_grad_l2 = None
+
         gradient_regularization(net.parameters(), max_l2_norm)
         optimizer.step()
 
         if (step % eval_interval == 0):
+            # ai新增
+            weight_l2 = tensor_group_l2_norm(net.parameters())
+            layer_weight_l2 = [
+                tensor_group_l2_norm(layer.parameters()) for layer in net.layers
+            ]
+
             with torch.no_grad():
+                net.eval()
                 train_loss_sum, valid_loss_sum = 0, 0
                 for st in range(eval_batches):
-                    train_inputs, train_labels = data_loading(train_path, batch_size, context_length, device)
-                    valid_inputs, valid_labels= data_loading(val_path, batch_size, context_length, device)
+                    train_inputs, train_labels = data_loading(train_data, batch_size, context_length, device)
+                    valid_inputs, valid_labels= data_loading(valid_data, batch_size, context_length, device)
                     train_logits = net(train_inputs)
                     valid_logits = net(valid_inputs)
                     valid_loss = loss_fn(valid_logits, valid_labels)
@@ -231,6 +300,18 @@ def main():
                     f"lr={lr:.6g}"
                 )
 
+                # ai新增
+                with open(norms_path, "a", encoding="utf-8", newline="") as file:
+                    csv.writer(file).writerow([
+                        completed_steps,
+                        elapsed_seconds,
+                        weight_l2,
+                        grad_l2_pre_clip,
+                        *layer_weight_l2,
+                        *layer_grad_l2,
+                        *(activation_rms.get(i, float("nan")) for i in range(num_layers)),
+                    ])
+
         if (step % save_interval == 0):
             checkpoint_path = Path(checkpoint_dir)
             checkpoint_path.mkdir(parents=True, exist_ok=True)
@@ -238,7 +319,11 @@ def main():
             save_path = checkpoint_path / f"step_{step + 1}.pt"
 
             save_checkpoint(net, optimizer, step, save_path)
-            print(f"Step.{step + 1} already check point in {save_path}")
+            logging.info(f"Step.{step + 1} already check point in {save_path}")
+
+    # ai新增
+    for hook in activation_hooks:
+        hook.remove()
 
     plot_loss_curves(run_dir) 
 
