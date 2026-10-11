@@ -2,7 +2,7 @@ import argparse
 import random
 import torch
 
-from cs336_basics.bpe_tokenizer import tokenizer
+from cs336_basics.bpe_tokenizer import Tokenizer
 from cs336_basics.train_bpe import read_text_to_bpe
 from cs336_basics.transformer import Transformer
 from cs336_basics.train import load_checkpoint
@@ -62,7 +62,7 @@ max_new_tokens = args.max_new_tokens
 
 ## 初始化模型 / 数据
 vocab, merges = read_text_to_bpe(args.bpe_dir)
-tkn = tokenizer(vocab, merges)
+tkn = Tokenizer(vocab, merges)
 net = Transformer(vocab_size, model_context_length, model_dim,num_layers, num_heads, ffn_dim, rope_theta, device,)
 inverse_vocab = {token_bytes: token_id for token_id, token_bytes in vocab.items()}
 checkpoint = torch.load(args.checkpoint_path, map_location=device, weights_only=True)
