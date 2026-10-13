@@ -142,8 +142,8 @@ def gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: flo
         epsilon = 1e-6
         scale = max_l2_norm / (total_norm + epsilon)
         for grad in grads:
-
             grad.mul_(scale)
+
 import numpy.typing as npt
 import numpy as np
 def data_loading(dataset: npt.NDArray, batch_size: int, context_length: int, device: str):

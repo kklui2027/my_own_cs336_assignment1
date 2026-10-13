@@ -9,7 +9,7 @@ import torch
 from jaxtyping import Bool, Float, Int
 from torch import Tensor
 
-from cs336_basics.bpe_tokenizer import tokenizer
+from cs336_basics.bpe_tokenizer import Tokenizer
 from cs336_basics.bpe_tokenization import run_train_bpe1
 from cs336_basics.model import (
     Embedding,
@@ -625,7 +625,7 @@ def get_tokenizer(
         A BPE tokenizer that uses the provided vocab, merges, and special tokens.
     """
     # raise NotImplementedError
-    return tokenizer(vocab, merges, special_tokens)
+    return Tokenizer(vocab, merges, special_tokens)
 
 def run_train_bpe(
     input_path: str | os.PathLike,
