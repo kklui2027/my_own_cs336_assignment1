@@ -7,6 +7,7 @@ from cs336_basics.train_bpe import read_text_to_bpe
 from cs336_basics.transformer import Transformer
 from cs336_basics.train import load_checkpoint
 
+# AI generated
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Transformer text generation",
@@ -68,6 +69,7 @@ inverse_vocab = {token_bytes: token_id for token_id, token_bytes in vocab.items(
 checkpoint = torch.load(args.checkpoint_path, map_location=device, weights_only=True)
 net.load_state_dict(checkpoint["model"])
 net.eval()
+
 
 def main():
     while True:
