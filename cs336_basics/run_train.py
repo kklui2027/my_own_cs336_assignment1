@@ -49,21 +49,21 @@ def parse_args():
     optimizer_args = parser.add_argument_group("AdamW 优化器")
     optimizer_args.add_argument("--lr", type=float, default=3e-4)
     optimizer_args.add_argument("--beta1", type=float, default=0.9)
-    optimizer_args.add_argument("--beta2", type=float, default=0.999)
+    optimizer_args.add_argument("--beta2", type=float, default=0.95)
     optimizer_args.add_argument("--eps", type=float, default=1e-8)
     optimizer_args.add_argument("--weight_decay", type=float, default=0.01)
 
     ## 学习率调度
     schedule_args = parser.add_argument_group("学习率调度")
-    schedule_args.add_argument("--max_learning_rate", type=float, default=None)
+    schedule_args.add_argument("--max_learning_rate", type=float, default=1e-3)
     schedule_args.add_argument("--min_learning_rate", type=float, default=None)
-    schedule_args.add_argument("--warmup_iters", type=int, default=100)
+    schedule_args.add_argument("--warmup_iters", type=int, default=200)
     schedule_args.add_argument("--cosine_cycle_iters", type=int, default=None)
 
     ## 训练与运行设备
     training_args = parser.add_argument_group("训练与运行设备")
     training_args.add_argument("--batch_size", type=int, default=32)
-    training_args.add_argument("--max_steps", type=int, default=20000)
+    training_args.add_argument("--max_steps", type=int, default=10000)
     training_args.add_argument("--device", type=str, default="cuda")
     training_args.add_argument("--dtype", choices=["float32", "float16", "bfloat16"], default="float32")
 
@@ -113,7 +113,7 @@ def main():
 
     ## 学习率调度
     max_learning_rate = args.max_learning_rate if args.max_learning_rate is not None else lr
-    min_learning_rate = args.min_learning_rate if args.min_learning_rate is not None else 0.1 * max_learning_rate
+    min_learning_rate = args.min_learning_rate if args.min_learning_rate is not None else max_learning_rate * 0.3
     warmup_iters = args.warmup_iters
     cosine_cycle_iters = args.cosine_cycle_iters if args.cosine_cycle_iters is not None else args.max_steps
 
@@ -141,7 +141,7 @@ def main():
     valid_data = np.memmap(val_path, dtype=np.uint32, mode="r")
     ## 初始化环境
     # 核心网络
-    net = Transformer(vocab_size, context_length, d_model, num_layers, num_heads, d_ff, rope_theta, device=device, dtype=dtype,)
+    net = Transformer(vocab_size, context_length, d_model, num_layers, num_heads, d_ff, rope_theta, using_attenres=False, device=device, dtype=dtype,)
     # ai新增
     should_log_norms = False
     activation_rms = {}
@@ -235,10 +235,11 @@ def main():
         should_log_norms = False
         loss = loss_fn(logits, labels)
         loss.backward()
+        gradient_regularization(net.parameters(), max_l2_norm)
+        optimizer.step()
 
-        # 裁剪前记录梯度范数，便于发现持续过大的梯度。
-        # ai新增
-        if step % eval_interval == 0:
+        if (step % eval_interval == 0):
+            
             grad_l2_pre_clip = tensor_group_l2_norm(
                 parameter.grad for parameter in net.parameters()
                 if parameter.grad is not None
@@ -250,14 +251,7 @@ def main():
                 )
                 for layer in net.layers
             ]
-        else:
-            grad_l2_pre_clip = None
-            layer_grad_l2 = None
 
-        gradient_regularization(net.parameters(), max_l2_norm)
-        optimizer.step()
-
-        if (step % eval_interval == 0):
             # ai新增
             weight_l2 = tensor_group_l2_norm(net.parameters())
             layer_weight_l2 = [
