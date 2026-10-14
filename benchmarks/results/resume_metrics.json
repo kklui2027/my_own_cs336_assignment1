@@ -1,0 +1,6 @@
+{
+  "prompt_tokens": 768,
+  "no_cache_tokens_per_second": 56.1296885011561,
+  "cache_tokens_per_second": 137.3853251672071,
+  "speedup": 2.4476409692595635
+}

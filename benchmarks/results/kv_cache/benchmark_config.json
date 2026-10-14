@@ -1,0 +1,58 @@
+{
+  "checkpoint": "/home/aixkai/336/checkpoints/step_9001.pt",
+  "device": "cuda",
+  "device_name": "NVIDIA GeForce RTX 4070 Laptop GPU",
+  "dtype": "torch.float32",
+  "python_version": "3.12.14 (main, Sep  2 2026, 23:27:36) [GCC 15.3.0]",
+  "torch_cpu_threads": 12,
+  "torch_version": "2.11.0+cu130",
+  "using_attenres": false,
+  "context_length": 256,
+  "prompt_lengths": [
+    64,
+    128,
+    192,
+    64,
+    128,
+    192,
+    64,
+    128,
+    192
+  ],
+  "token_file": "/home/aixkai/336/data/val.bin",
+  "prompt_offset": 0,
+  "num_prompts": 3,
+  "prompt_tokens_sha256": [
+    "df81b8ff03c3fa3d2d5c2e59d0c52b983627b5108661aeaacdb3d6ec855dc555",
+    "03d9e026c5940e1357b65793ebdddecdee1c11c83fd4120eb10707707c09bbf7",
+    "65c871a5c9d899b32f0e2f73dc479502607370dceb67caae4aa622f384d371c7",
+    "412cef1891cc784b6e276de7a23f819f27dda999c0484d2038880e3febe5b1bd",
+    "ccbad89bccc969dfa93126568a16fd5f4db44af313ccf2c2badd0d607ba9d9fe",
+    "d722dcbbb92e3dd954fa7e66bd1b4fe1f7419a81b2399c40ce1a3bf1b35e9447",
+    "15dab3b539d00e7fc5fb10e3a3b2f1f72aa963c16b9427e4fea3e04cbbe7ec67",
+    "b371df57a3ed0fbdb22ee9c7073903cc830c7eec12a4024c42a622b7fbebb5d4",
+    "2a200391ec6031e708f85d1b0e97cd095f50056b03aa8a44c511dcee3914e373"
+  ],
+  "new_tokens": 64,
+  "repeats": 7,
+  "warmup": 3,
+  "modes": [
+    "model_only",
+    "end_to_end"
+  ],
+  "seed": 123,
+  "temperature": 1.0,
+  "top_p": 1.0,
+  "eos_stop_disabled_for_fixed_length_benchmark": true,
+  "cache_correctness": {
+    "chunk_1_max_abs_error": 1.621246337890625e-05,
+    "chunk_4_max_abs_error": 1.4781951904296875e-05
+  },
+  "measurement_scope": "Model-only uses identical teacher-forced token streams; end-to-end includes prefill, tensor construction, transfer and sampling, but excludes tokenizer loading, text encoding and final text decoding.",
+  "rolling_window": "Disabled for both variants; prompt length + new tokens is bounded by context_length.",
+  "model_source_sha256": {
+    "model.py": "8b39c032ef0314bbf40aa68655f6f98a237e949f219063350eb599f9ce388193",
+    "transformer.py": "8ab1746255ff10d7a4d523434ca5faf463fe546a6ef73fa37ada26db6ed8bad4",
+    "decoding.py": "deed56544362b48fe45effca4e662a651af89a41f61bc4c44c959107eb1c29da"
+  }
+}

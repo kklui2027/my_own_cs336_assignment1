@@ -1,0 +1,59 @@
+{
+  "checkpoint": "/home/aixkai/336/checkpoints/step_9001.pt",
+  "device": "cuda",
+  "device_name": "NVIDIA GeForce RTX 4070 Laptop GPU",
+  "dtype": "torch.float32",
+  "python_version": "3.12.14 (main, Sep  2 2026, 23:27:36) [GCC 15.3.0]",
+  "torch_cpu_threads": 12,
+  "torch_version": "2.11.0+cu130",
+  "using_attenres": false,
+  "context_length": 1024,
+  "prompt_lengths": [
+    256,
+    512,
+    768,
+    256,
+    512,
+    768,
+    256,
+    512,
+    768
+  ],
+  "token_file": "/home/aixkai/336/data/val.bin",
+  "prompt_offset": 0,
+  "num_prompts": 3,
+  "prompt_tokens_sha256": [
+    "ca4f0b93f1b7af2043a2e3c02c20a15de085ffc21abacdde248407196eff26e4",
+    "ac276e8b0ee615ce9a26680df9e2c727f95482509d53f420a028d1d5e76323a9",
+    "d8b298204ef0414b2c0b271b8dc43228d3a4ea2b41cd7f7ee788559a88e6dd0d",
+    "a305dda12505f83ef1abf97891d5834a0faec3cd8e6d32f25bbe478bf35d39e0",
+    "2b58c37479100aecc004cb74ac4d7f50e91c1a6541bf06f9024b6b6443416fea",
+    "94e0a76e85134c450d83d1aab44847f3f67d8b2939d66ecfbb0d2dfa53cde54f",
+    "273bdd425e77d7019cb40adbca54cbed820cc122bb5dbafdb630c93a5fc1ba71",
+    "97ba51dc9a32018557c0fbc5998aea767c4aa42be3c36f0f8b9de2ed5819aafb",
+    "14c300cf8485e436e9b20b319f5e1c2dfb7c12f62ff8d42a78dac931e4a55ab1"
+  ],
+  "new_tokens": 64,
+  "repeats": 7,
+  "warmup": 3,
+  "modes": [
+    "end_to_end"
+  ],
+  "seed": 123,
+  "temperature": 1.0,
+  "top_p": 1.0,
+  "eos_stop_disabled_for_fixed_length_benchmark": true,
+  "cache_correctness": {
+    "prefix_16_chunk_1_max_abs_error": 1.621246337890625e-05,
+    "prefix_16_chunk_4_max_abs_error": 1.4781951904296875e-05,
+    "prefix_512_chunk_1_max_abs_error": 2.193450927734375e-05,
+    "prefix_512_chunk_4_max_abs_error": 1.9550323486328125e-05
+  },
+  "measurement_scope": "Model-only uses identical teacher-forced token streams; end-to-end includes prefill, tensor construction, transfer and sampling, but excludes tokenizer loading, text encoding and final text decoding.",
+  "rolling_window": "Disabled for both variants; prompt length + new tokens is bounded by context_length.",
+  "model_source_sha256": {
+    "model.py": "8b39c032ef0314bbf40aa68655f6f98a237e949f219063350eb599f9ce388193",
+    "transformer.py": "8ab1746255ff10d7a4d523434ca5faf463fe546a6ef73fa37ada26db6ed8bad4",
+    "decoding.py": "deed56544362b48fe45effca4e662a651af89a41f61bc4c44c959107eb1c29da"
+  }
+}

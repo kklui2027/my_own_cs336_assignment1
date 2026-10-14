@@ -1,0 +1,41 @@
+{
+  "python": "3.12.14 (main, Sep  2 2026, 23:27:36) [GCC 15.3.0]",
+  "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "cpu_count": 24,
+  "input": "/home/aixkai/336/data/TinyStoriesV2-GPT4-train.txt",
+  "input_bytes": 8388591,
+  "documents": 10110,
+  "input_sample_sha256": "4aa9df211b8f89c366dacbc3c55e218079e61262701513fcbbae74c15c4c6f7e",
+  "bpe_dir": "/home/aixkai/336/data/result",
+  "vocab_sha256": "a54ee40d085758f4e91a1c16c3366d765c68a16f83a69f028b1e826c08308f5d",
+  "merges_sha256": "4a672547e5f840dd9507606c28311ca28c3e35d79841342526486e47630bbcbe",
+  "tokenizer_source": "/home/aixkai/336/cs336_basics/bpe_tokenizer.py",
+  "tokenizer_source_sha256": "8ea6810c4f6f89f1218fbf43b8f6ac0d6d82a1c5da39707ca3c09fce2eb4b664",
+  "commented_encode_start_line": 179,
+  "recovered_encode_sha256": "27565e674797f2c2a160f9500e102fedafe47d824fae712e81d0bb60b5cf0890",
+  "cache_size": 100000,
+  "repeats": 5,
+  "warmup": 1,
+  "correctness": {
+    "current": {
+      "tokens": 2037821,
+      "token_ids_sha256": "0bac7da7c4a956fbe4dafe9611c54eef0f1347a24b57aa94e7a25991e54a0cca"
+    },
+    "optimized_no_cache": {
+      "tokens": 2037821,
+      "token_ids_sha256": "0bac7da7c4a956fbe4dafe9611c54eef0f1347a24b57aa94e7a25991e54a0cca"
+    },
+    "optimized_lru_cold": {
+      "tokens": 2037821,
+      "token_ids_sha256": "0bac7da7c4a956fbe4dafe9611c54eef0f1347a24b57aa94e7a25991e54a0cca"
+    },
+    "optimized_lru_warm": {
+      "tokens": 2037821,
+      "token_ids_sha256": "0bac7da7c4a956fbe4dafe9611c54eef0f1347a24b57aa94e7a25991e54a0cca"
+    }
+  },
+  "scope": "Single-process encode only; input loading, tokenizer setup, uint32 conversion and file writing excluded.",
+  "cold_cache": "Empty at the start of every measured full corpus pass; reused across documents within that pass.",
+  "warm_cache": "Pre-encoded the same sample outside the timer; reported separately.",
+  "source_handling": "Commented encode recovered in memory; project source files unchanged."
+}
