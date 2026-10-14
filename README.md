@@ -146,6 +146,7 @@ v 是长度为 `d_model` 的 `可学习参数`，每个Transformer模块中 对 
 <p align="center">
   <img src="images\image.png" title="" alt="" width="379">
 </p>
+
 | 第 9901 步的记录 | StdRes  | AttenRes |
 | ----------- | -------:| --------:|
 | 验证交叉熵       | 1.57275 | 1.56943  |
