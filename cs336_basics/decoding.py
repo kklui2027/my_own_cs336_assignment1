@@ -16,8 +16,6 @@ def parse_args():
     )
 
     # Data and BPE
-    parser.add_argument("--train_path", type=str, required=True)
-    parser.add_argument("--val_path", type=str, required=True)
     parser.add_argument("--bpe_dir", type=str, default="/data")
 
     # Model hyperparameters
@@ -29,8 +27,6 @@ def parse_args():
     parser.add_argument("--ffn_dim", type=int, default=1344)
     parser.add_argument("--rope_theta", type=float, default=10000.0)
 
-    # Checkpoint and device
-    parser.add_argument("--checkpoint_path", type=str, default="checkpoints/.pt")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
 
     # Generation hyperparameters
@@ -64,26 +60,41 @@ max_new_tokens = args.max_new_tokens
 
 ## 初始化模型 / 数据
 vocab, merges = read_text_to_bpe(args.bpe_dir)
-tkn = Tokenizer(vocab, merges)
-net = Transformer(vocab_size, model_context_length, model_dim, num_layers, num_heads, ffn_dim, rope_theta, device,)
+tkn = Tokenizer(vocab, merges, ["<|endoftext|>"])
+net = Transformer(vocab_size, model_context_length, model_dim, num_layers, num_heads, ffn_dim, rope_theta, using_cache=False, device=device).to(device) #初始化没有将其全部移到统一设备
 inverse_vocab = {token_bytes: token_id for token_id, token_bytes in vocab.items()}
-checkpoint = torch.load(args.checkpoint_path, map_location=device, weights_only=True)
-net.load_state_dict(checkpoint["model"])
+checkpoint = torch.load("/home/aixkai/336/checkpoints/step_9001.pt", map_location=device, weights_only=True)
+net.load_state_dict(checkpoint["model"], strict=False)
 net.eval()
+
+using_cache=False
 
 def main():
     while True:
         ## 输入prompt：
         generated_ids = []
         prompt = input(">>")
+        if not prompt:
+            continue
+        if (prompt == "exit"):
+            return        
         # decode成 token_id [seq_len]
         inputs = tkn.encode(prompt)
+        if using_cache:
+            net.reset_cache()
+            first = True
 
         start_time = time.perf_counter()
         while True:
-            if (prompt == "exit"):
-                return
-            model_inputs = torch.tensor(inputs[-max_context_leng:], device=device).unsqueeze(0)
+
+            if using_cache:
+                if first:
+                    model_inputs = torch.tensor(inputs[-max_context_leng:], device=device).unsqueeze(0)
+                    first=False
+                else:
+                    model_inputs = torch.tensor(inputs[-1:], device=device).unsqueeze(0)
+            else:
+                model_inputs = torch.tensor(inputs[-max_context_leng:], device=device).unsqueeze(0)
             # transformer 预测
             with torch.inference_mode():
                 logits = net(model_inputs)
@@ -112,19 +123,15 @@ def main():
             #     if (sum >= random_t):
             #         idx = i
             #         break
+
             # Top-p 随机采样生成下一个token
             prob, index = torch.sort(prob, descending=True)
             cumulative_prob = torch.cumsum(prob, dim=-1)
-
             mask = cumulative_prob - prob < top_p
-
             re_prob = prob[mask]
             re_idx = index[mask]
-
             re_prob = re_prob / re_prob.sum()
-
             idx = torch.multinomial(re_prob, 1).item()
-
             token_id_g = re_idx[idx].item()
 
             # 判断token 长度是否达到上限 / 是否生成结束 <|endoftext|>`
@@ -146,7 +153,6 @@ def main():
 
         print(text)
         print(f"Token generated speed: {len(generated_ids) / elapsed :.3f}")
-
 
 if __name__ == "__main__":
     main()

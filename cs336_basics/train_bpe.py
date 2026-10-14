@@ -38,13 +38,14 @@ def read_text_to_bpe(
     with open(input_dir / "vocab.txt", "r", encoding="utf-8") as f:
         for line in f:
             ## 去掉换行符,按照\t切分
-            token_id, byte = line.strip('\n').split('t')
-            vocab[token_id] = bytes.fromhex(byte)
+            token_id, byte = line.strip('\n').split('\t') # \t制表符，少一斜杠
+            vocab[int(token_id)] = bytes.fromhex(byte) # 这里返成字符串了，NBbro
     # 保存 merges
     with open(input_dir / "merges.txt", "r", encoding="utf-8") as f:
         for line in f:
-            byte1 ,byte2 = line.strip('\n').split('t')
-            merges.append(bytes.fromhex(byte1), bytes.fromhex(byte2))
+            byte1 ,byte2 = line.strip('\n').split('\t')
+            merges.append(tuple[bytes.fromhex(byte1), bytes.fromhex(byte2)])
+    return [vocab, merges]
 
 if __name__ == "__main__":
     # log code
