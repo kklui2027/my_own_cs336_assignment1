@@ -149,7 +149,7 @@ v 是长度为 `d_model` 的 `可学习参数`，每个Transformer模块中 对 
 两组实验使用相同的模型尺寸、数据路径、batch size 32 和学习率调度：最大学习率 `1e-3`、最小学习率 `3e-4`、预热 200 步，总训练步数 10,000。
 
 
- <img src="images\image1.png" title="" alt="" width="800">
+ <img src="images\image1.png" title="" alt="" width="600">
 
 
 | 第 9901 步的记录 | StdRes  | AttenRes |
@@ -168,7 +168,7 @@ v 是长度为 `d_model` 的 `可学习参数`，每个Transformer模块中 对 
 | 2             | 5.909  | 2.185    |
 | 3             | 9.942  | 1.613    |
 
-<img src="images\image2.png" title="" alt="" width="1000">
+<img src="images\image2.png" title="" alt="" width="800">
 
 标准残差的激活尺度随层深明显增加，AttenRes 的增长受到显著抑制。但尺度更小不等于时间上的波动更小，也不能据此断言梯度更稳定。
 
